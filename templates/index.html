@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Tracker & Tweet Composer</title>
+    <meta name="description" content="Track BigQuery release notes and instantly compose and post tweets for updates.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Toast Notification -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-database"></i>
+                    <div class="logo-accent"></div>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery</h1>
+                    <span>Release Notes Tracker</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div id="status-badge" class="status-badge synced">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Synced</span>
+                </div>
+                <div class="last-updated">
+                    Updated: <span id="last-updated-time">Never</span>
+                </div>
+                <button id="refresh-btn" class="btn btn-primary" title="Refresh Release Notes">
+                    <i id="refresh-icon" class="fa-solid fa-arrows-rotate"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar (Controls) -->
+            <aside class="sidebar">
+                <!-- Search Section -->
+                <div class="sidebar-widget">
+                    <h3><i class="fa-solid fa-magnifying-glass"></i> Search</h3>
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Search updates..." autocomplete="off">
+                        <button id="clear-search-btn" class="clear-search-btn" style="display: none;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="sidebar-widget">
+                    <h3><i class="fa-solid fa-filter"></i> Filter by Type</h3>
+                    <div class="filter-group" id="type-filters">
+                        <button class="filter-chip active" data-type="all">
+                            <span class="chip-label">All</span>
+                            <span class="chip-count" id="count-all">0</span>
+                        </button>
+                        <button class="filter-chip" data-type="Feature">
+                            <span class="chip-indicator type-feature"></span>
+                            <span class="chip-label">Features</span>
+                            <span class="chip-count" id="count-feature">0</span>
+                        </button>
+                        <button class="filter-chip" data-type="Change">
+                            <span class="chip-indicator type-change"></span>
+                            <span class="chip-label">Changes</span>
+                            <span class="chip-count" id="count-change">0</span>
+                        </button>
+                        <button class="filter-chip" data-type="Deprecation">
+                            <span class="chip-indicator type-deprecation"></span>
+                            <span class="chip-label">Deprecations</span>
+                            <span class="chip-count" id="count-deprecation">0</span>
+                        </button>
+                        <button class="filter-chip" data-type="General">
+                            <span class="chip-indicator type-general"></span>
+                            <span class="chip-label">General</span>
+                            <span class="chip-count" id="count-general">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sort Section -->
+                <div class="sidebar-widget">
+                    <h3><i class="fa-solid fa-sort"></i> Sort Order</h3>
+                    <div class="sort-selector">
+                        <button id="sort-desc" class="sort-btn active" title="Newest First">
+                            <i class="fa-solid fa-arrow-down-short-wide"></i> Newest First
+                        </button>
+                        <button id="sort-asc" class="sort-btn" title="Oldest First">
+                            <i class="fa-solid fa-arrow-up-wide-short"></i> Oldest First
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Overview Card -->
+                <div class="sidebar-widget stats-summary">
+                    <div class="summary-title">Dashboard Summary</div>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="summary-val text-feature" id="stat-features">0</div>
+                            <div class="summary-lbl">Features</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-val text-change" id="stat-changes">0</div>
+                            <div class="summary-lbl">Changes</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-val text-deprecation" id="stat-deprecations">0</div>
+                            <div class="summary-lbl">Deprecations</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="content-area">
+                <!-- Top Toolbar -->
+                <div class="content-toolbar">
+                    <div class="toolbar-info">
+                        Showing <strong id="visible-count">0</strong> of <span id="total-count">0</span> updates
+                    </div>
+                    <div class="toolbar-actions">
+                        <span class="select-hint"><i class="fa-solid fa-circle-info"></i> Click any card to select and tweet</span>
+                    </div>
+                </div>
+
+                <!-- Loader -->
+                <div id="loader" class="loader-container">
+                    <div class="spinner-outer">
+                        <div class="spinner-inner"></div>
+                    </div>
+                    <p>Fetching the latest BigQuery release notes...</p>
+                </div>
+
+                <!-- Cards Grid -->
+                <div id="updates-grid" class="updates-grid" style="display: none;"></div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <div class="empty-icon"><i class="fa-regular fa-folder-open"></i></div>
+                    <h3>No Updates Found</h3>
+                    <p>No release notes match your search term or filter selection.</p>
+                    <button id="reset-filters-btn" class="btn btn-secondary">Clear Filters</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Tweet Composer Modal -->
+    <div id="tweet-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-brands fa-x-twitter"></i>
+                    <h2>Compose Tweet</h2>
+                </div>
+                <button id="close-modal-btn" class="close-btn" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Selected Note Preview -->
+                <div class="selected-note-preview">
+                    <div class="preview-header">
+                        <span id="tweet-preview-type" class="badge">Feature</span>
+                        <span id="tweet-preview-date" class="preview-date">July 06, 2026</span>
+                    </div>
+                    <div id="tweet-preview-body" class="preview-body">
+                        Loading note contents...
+                    </div>
+                </div>
+
+                <!-- Composer Controls -->
+                <div class="composer-settings">
+                    <label>Select Template Style:</label>
+                    <div class="template-chips">
+                        <button class="template-chip active" data-style="classic">Classic</button>
+                        <button class="template-chip" data-style="exciting">🔥 Exciting</button>
+                        <button class="template-chip" data-style="professional">💼 Professional</button>
+                        <button class="template-chip" data-style="minimal">⚡ Minimal</button>
+                    </div>
+                </div>
+
+                <!-- Text Area -->
+                <div class="tweet-textarea-container">
+                    <textarea id="tweet-textarea" rows="6" placeholder="What's happening?"></textarea>
+                    <div class="textarea-footer">
+                        <div class="composer-options">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="option-include-link" checked>
+                                <span class="checkmark"></span>
+                                Include Link
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="option-include-tags" checked>
+                                <span class="checkmark"></span>
+                                Include Hashtags
+                            </label>
+                        </div>
+                        <div class="char-count-wrapper">
+                            <svg class="char-progress" width="30" height="30" viewBox="0 0 30 30">
+                                <circle class="progress-bg" cx="15" cy="15" r="12"></circle>
+                                <circle id="progress-indicator" class="progress-bar" cx="15" cy="15" r="12"></circle>
+                            </svg>
+                            <span id="char-counter" class="char-counter">280</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="copy-tweet-btn" class="btn btn-secondary">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copy Text</span>
+                </button>
+                <button id="publish-tweet-btn" class="btn btn-tweet">
+                    <i class="fa-brands fa-x-twitter"></i>
+                    <span>Post to X</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Script -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
