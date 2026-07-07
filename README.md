@@ -22,7 +22,10 @@ bq-release-notes/
 ├── app.py                 # Flask server backend
 ├── requirements.txt       # Python dependencies
 ├── run.sh                 # Startup shell script
-├── README.md              # Documentation
+├── README.md              # Project entry guide
+├── docs/                  # Detailed documentation folder
+│   ├── app_explanation.md      # Server-side Flask logic documentation
+│   └── architecture_and_flow.md # End-to-end client-server system flow
 ├── static/
 │   ├── css/
 │   │   └── style.css      # Custom styling (design tokens, animations, responsive grids)
@@ -31,6 +34,12 @@ bq-release-notes/
 └── templates/
     └── index.html         # Main dashboard markup
 ```
+
+## Documentation Reference
+For in-depth explanations of the system's design and flow, see the following documents:
+- [docs/architecture_and_flow.md](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/docs/architecture_and_flow.md) - System architecture layout, server-client splits, and request-response flow diagrams.
+- [docs/app_explanation.md](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/docs/app_explanation.md) - Detailed breakdown of the Flask backend, regex parsing logic, and caching algorithms.
+
 
 ## Setup & Running
 
