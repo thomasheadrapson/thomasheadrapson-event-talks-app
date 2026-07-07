@@ -13,6 +13,9 @@ The application operates as a **single-page dashboard (SPA)** with a lightweight
 - **Client-Side Search & Filter**: Instant filtering based on title, content, or type without repeating remote API network requests.
 - **Smart Truncator**: Limits character outputs to exactly 280, accommodating variable length URLs, tags, and custom templates.
 - **Web Intent Publishing**: Pre-fills drafts on X/Twitter using secure, client-side browser links without requiring OAuth configurations.
+- **CSV Data Exporter**: Export whatever updates are currently active and filtered on the screen to a `.csv` file format.
+- **Dark/Light Theme Toggle**: Seamless style swapping with variable overriding and LocalStorage persistence.
+- **Keyboard Power-User Navigation**: Hotkey controls (ArrowKeys, j/k, Enter, Space, Escape, /) to navigate, search, open composer, and post without touching the mouse.
 
 ---
 
@@ -67,15 +70,19 @@ The frontend handles layout presentation, filtering, and text manipulation.
     *   Uses a split screen design: a fixed `300px` control sidebar on the left and a scrollable content area on the right.
     *   Supports responsive layouts (collapses to a single vertical column on viewports `< 900px`).
     *   Applies a dark-blue glassmorphism theme (`backdrop-filter`) with custom indicator glowing effects.
+    *   **Light Theme Variables**: Swaps root colors, gradients, shadows, and backgrounds when the `body.light-theme` class is applied.
 2.  **Interactive Controller ([app.js](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js))**:
-    *   **State Tracker**: Manages the loaded datasets (`updatesState`), search terms, type filters, sort state, and currently selected update.
-    *   **Real-time Renderers**: [`applyFilters`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L265) filters and sorts cards instantly using javascript `Array.prototype.filter()` and `Array.prototype.sort()`.
+    *   **State Tracker**: Manages the loaded datasets (`updatesState`), search terms, type filters, sort state, keyboard index, and selected update.
+    *   **Real-time Renderers**: [`applyFilters`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L250) filters and sorts cards instantly using javascript `Array.prototype.filter()` and `Array.prototype.sort()`.
     *   **HTML Stripper ([`stripHtml`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L332))**: Formats parsed HTML elements into clean, readable text. Lists are converted to markdown bullet points (`• item`) and paragraph breaks are preserved as newlines (`\n\n`).
     *   **Character Budget Allocator ([`regenerateTweetContent`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L354))**: 
         *   Calculates the static characters used by the selected layout style (e.g. "Exciting" adds emojis and hashtags).
         *   Determines `maxSummaryLength = 280 - staticLength`.
         *   Truncates the core release text to this size, appending `...` if needed.
         *   Updates an interactive SVG circle indicator ([`updateCharCount`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L396)) to show character warnings (yellow at <=30 characters remaining, red at <0).
+    *   **Data Export ([`exportToCSV`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L588))**: Maps currently filtered cards to an array of rows, double-escapes quotes for CSV compatibility, packages it as a Blob, and downloads it in the browser.
+    *   **Theme Switcher ([`toggleTheme`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L567))**: Toggles theme classes on the document body and saves state to LocalStorage for persistence.
+    *   **Keyboard Navigation ([`handleGlobalKeydown`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L489))**: Standardizes hotkey bindings, resolves focused indices, scrolls cards into view, and disables navigation triggers when typing in text fields.
 
 ---
 
@@ -169,3 +176,21 @@ sequenceDiagram
     ```
 *   **X Web Intent URL Call**:
     `https://x.com/intent/tweet?text=%F0%9F%94%A5%20New%20BigQuery%20Feature!...`
+
+---
+
+## 5. Keyboard Navigation Hotkeys Map
+
+When navigating the interface, the following keyboard shortcut mappings are resolved by [`handleGlobalKeydown`](file:///Users/tomhr/AG_Workspaces/5dgi/agy-cli-projects/bq-release-notes/static/js/app.js#L489):
+
+| Context / State | Hotkey | Bound Event / Action |
+| :--- | :--- | :--- |
+| **Global Feed** | `ArrowDown` or `j` | Moves focus highlight to the next card in the list (auto-scrolls) |
+| **Global Feed** | `ArrowUp` or `k` | Moves focus highlight to the previous card (auto-scrolls) |
+| **Global Feed** | `Enter` or `Space` | Selects focused card and opens the Tweet Composer Modal |
+| **Global Feed** | `/` (Slash) | Focuses the Search Input box and highlights text |
+| **Global Feed** | `Escape` | Clears active keyboard focus highlight |
+| **Search Input Box** | `ArrowDown` | Blurs search box and transfers focus control to the first card |
+| **Search Input Box** | `Escape` | Clears search text, resets feed, and blurs input field |
+| **Composer Modal** | `Escape` | Closes composer modal, restores focus outline to the active card |
+| **Composer Modal** | `Cmd + Enter` or `Ctrl + Enter` | Direct X Publishing: Submits tweet and opens X Web Intent tab |
