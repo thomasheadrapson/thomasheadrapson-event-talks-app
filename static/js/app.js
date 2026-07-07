@@ -2,6 +2,7 @@
 let updatesState = [];
 let filteredUpdates = [];
 let selectedUpdate = null;
+let keyboardFocusIndex = -1;
 
 const filters = {
     search: '',
@@ -160,6 +161,9 @@ function initEventListeners() {
     
     // Theme Toggle
     elements.themeToggleBtn.addEventListener('click', toggleTheme);
+    
+    // Keyboard Navigation
+    window.addEventListener('keydown', handleGlobalKeydown);
 }
 
 // Fetch Release Notes
@@ -252,6 +256,7 @@ function resetFilters() {
 
 // Client-side Filters & Sorting
 function applyFilters() {
+    keyboardFocusIndex = -1;
     filteredUpdates = updatesState.filter(update => {
         // Search filter
         const textContent = (update.content + ' ' + update.type + ' ' + update.date).toLowerCase();
@@ -333,6 +338,9 @@ function renderUpdatesGrid() {
         
         // Card click selection
         card.addEventListener('click', (e) => {
+            const clickIndex = filteredUpdates.findIndex(up => up.id === update.id);
+            updateKeyboardFocus(clickIndex);
+            
             // If user clicked link, don't trigger selection modal
             if (e.target.tagName === 'A' || e.target.closest('a')) {
                 return;
@@ -640,4 +648,105 @@ function exportToCSV() {
         console.error(err);
         showToast('Failed to export CSV.', 'error');
     }
+}
+
+// Keyboard Navigation & Shortcuts Handlers
+function handleGlobalKeydown(e) {
+    const isModalOpen = elements.tweetModal.style.display === 'flex';
+    const activeEl = document.activeElement;
+    const isTyping = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable;
+    
+    if (isModalOpen) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeTweetModal();
+            // Restore visual focus border on the card
+            if (keyboardFocusIndex >= 0) {
+                updateKeyboardFocus(keyboardFocusIndex);
+            }
+        } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            // Cmd+Enter or Ctrl+Enter submits tweet
+            e.preventDefault();
+            publishTweet();
+        }
+        return;
+    }
+    
+    // Typing in inputs (like search)
+    if (isTyping) {
+        if (activeEl === elements.searchInput) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (filteredUpdates.length > 0) {
+                    elements.searchInput.blur();
+                    updateKeyboardFocus(0);
+                }
+            } else if (e.key === 'Escape') {
+                elements.searchInput.value = '';
+                filters.search = '';
+                elements.clearSearchBtn.style.display = 'none';
+                applyFilters();
+                elements.searchInput.blur();
+            }
+        }
+        return;
+    }
+    
+    // Not typing in any text input field
+    switch (e.key) {
+        case 'ArrowDown':
+        case 'j':
+            e.preventDefault();
+            if (keyboardFocusIndex < filteredUpdates.length - 1) {
+                updateKeyboardFocus(keyboardFocusIndex + 1);
+            } else if (keyboardFocusIndex === -1 && filteredUpdates.length > 0) {
+                updateKeyboardFocus(0);
+            }
+            break;
+            
+        case 'ArrowUp':
+        case 'k':
+            e.preventDefault();
+            if (keyboardFocusIndex > 0) {
+                updateKeyboardFocus(keyboardFocusIndex - 1);
+            }
+            break;
+            
+        case 'Enter':
+        case ' ':
+            e.preventDefault();
+            if (keyboardFocusIndex >= 0 && keyboardFocusIndex < filteredUpdates.length) {
+                openTweetModal(filteredUpdates[keyboardFocusIndex]);
+            }
+            break;
+            
+        case '/':
+            e.preventDefault();
+            elements.searchInput.focus();
+            elements.searchInput.select();
+            break;
+            
+        case 'Escape':
+            if (keyboardFocusIndex !== -1) {
+                e.preventDefault();
+                updateKeyboardFocus(-1); // Clear active outline
+            }
+            break;
+    }
+}
+
+// Update card keyboard focus border and scroll into viewport
+function updateKeyboardFocus(index) {
+    keyboardFocusIndex = index;
+    
+    const cards = document.querySelectorAll('.update-card');
+    cards.forEach((card, idx) => {
+        if (idx === keyboardFocusIndex) {
+            card.classList.add('keyboard-focused');
+            // Scroll card into view smoothly
+            card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else {
+            card.classList.remove('keyboard-focused');
+        }
+    });
 }

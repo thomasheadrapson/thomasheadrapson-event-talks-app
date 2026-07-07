@@ -534,6 +534,12 @@ body {
     box-shadow: 0 0 0 1px var(--accent-blue), 0 4px 25px rgba(59, 130, 246, 0.15);
 }
 
+.update-card.keyboard-focused {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 3px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
 .update-card-header {
     display: flex;
     align-items: center;
