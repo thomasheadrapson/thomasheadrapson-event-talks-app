@@ -55,7 +55,8 @@ const elements = {
     charCountWrapper: document.querySelector('.char-count-wrapper'),
     copyTweetBtn: document.getElementById('copy-tweet-btn'),
     publishTweetBtn: document.getElementById('publish-tweet-btn'),
-    toastContainer: document.getElementById('toast-container')
+    toastContainer: document.getElementById('toast-container'),
+    themeToggleBtn: document.getElementById('theme-toggle')
 };
 
 // SVG Circle properties for character count progress
@@ -63,6 +64,7 @@ const CIRCLE_CIRCUMFERENCE = 75.39; // 2 * PI * r (12)
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initEventListeners();
     fetchUpdates(false);
 });
@@ -155,6 +157,9 @@ function initEventListeners() {
     
     // Export CSV
     elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    
+    // Theme Toggle
+    elements.themeToggleBtn.addEventListener('click', toggleTheme);
 }
 
 // Fetch Release Notes
@@ -547,6 +552,47 @@ function showToast(message, type = 'success') {
         toast.style.transform = 'translateY(10px)';
         setTimeout(() => toast.remove(), 500);
     }, 3500);
+}
+
+// Theme Handling
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const iconLight = document.querySelector('.icon-light');
+    const iconDark = document.querySelector('.icon-dark');
+    
+    if (savedTheme === 'light') {
+        document.body.classList.remove('dark-theme');
+        document.body.classList.add('light-theme');
+        if (iconLight) iconLight.style.display = 'block';
+        if (iconDark) iconDark.style.display = 'none';
+    } else {
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+        if (iconLight) iconLight.style.display = 'none';
+        if (iconDark) iconDark.style.display = 'block';
+    }
+}
+
+function toggleTheme() {
+    const isLight = document.body.classList.contains('light-theme');
+    const iconLight = document.querySelector('.icon-light');
+    const iconDark = document.querySelector('.icon-dark');
+    
+    if (isLight) {
+        document.body.classList.remove('light-theme');
+        document.body.classList.add('dark-theme');
+        localStorage.setItem('theme', 'dark');
+        if (iconLight) iconLight.style.display = 'none';
+        if (iconDark) iconDark.style.display = 'block';
+        showToast('Switched to Dark Theme', 'success');
+    } else {
+        document.body.classList.remove('dark-theme');
+        document.body.classList.add('light-theme');
+        localStorage.setItem('theme', 'light');
+        if (iconLight) iconLight.style.display = 'block';
+        if (iconDark) iconDark.style.display = 'none';
+        showToast('Switched to Light Theme', 'success');
+    }
 }
 
 // Export Filtered Updates to CSV
