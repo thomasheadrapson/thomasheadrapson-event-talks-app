@@ -39,6 +39,7 @@ const elements = {
     updatesGrid: document.getElementById('updates-grid'),
     emptyState: document.getElementById('empty-state'),
     resetFiltersBtn: document.getElementById('reset-filters-btn'),
+    exportCsvBtn: document.getElementById('export-csv-btn'),
     
     // Modal Elements
     tweetModal: document.getElementById('tweet-modal'),
@@ -151,6 +152,9 @@ function initEventListeners() {
     
     // Publish to Twitter/X
     elements.publishTweetBtn.addEventListener('click', publishTweet);
+    
+    // Export CSV
+    elements.exportCsvBtn.addEventListener('click', exportToCSV);
 }
 
 // Fetch Release Notes
@@ -332,7 +336,19 @@ function renderUpdatesGrid() {
             // If user clicked copy quick action
             if (e.target.closest('.copy-btn-quick')) {
                 e.stopPropagation();
+                const btn = e.target.closest('.copy-btn-quick');
+                const icon = btn.querySelector('i');
                 copyRawContent(update);
+                
+                // Direct icon feedback
+                icon.className = 'fa-solid fa-check';
+                btn.style.color = 'var(--feature-color)';
+                btn.style.borderColor = 'var(--feature-color)';
+                setTimeout(() => {
+                    icon.className = 'fa-solid fa-copy';
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                }, 1500);
                 return;
             }
 
@@ -531,4 +547,51 @@ function showToast(message, type = 'success') {
         toast.style.transform = 'translateY(10px)';
         setTimeout(() => toast.remove(), 500);
     }, 3500);
+}
+
+// Export Filtered Updates to CSV
+function exportToCSV() {
+    if (filteredUpdates.length === 0) {
+        showToast('No updates to export.', 'warning');
+        return;
+    }
+    
+    // Header row
+    const headers = ['Date', 'Type', 'URL', 'Content'];
+    
+    // Map rows (strip HTML content for compatibility with spreadsheet readers)
+    const rows = filteredUpdates.map(up => [
+        up.date,
+        up.type,
+        up.link,
+        stripHtml(up.content)
+    ]);
+    
+    // Convert arrays to CSV strings, escaping double quotes properly
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(val => {
+            const escaped = (val || '').toString().replace(/"/g, '""');
+            return `"${escaped}"`;
+        }).join(','))
+    ].join('\n');
+    
+    try {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const filename = `bq_release_notes_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Exported ${filteredUpdates.length} updates to CSV.`, 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to export CSV.', 'error');
+    }
 }

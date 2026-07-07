@@ -445,6 +445,12 @@ body {
     color: var(--text-primary);
 }
 
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 .select-hint {
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -452,6 +458,7 @@ body {
     align-items: center;
     gap: 0.35rem;
 }
+
 
 /* Loader */
 .loader-container {
